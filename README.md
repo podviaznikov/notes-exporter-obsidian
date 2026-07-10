@@ -2,7 +2,7 @@
 
 Capture in Apple Notes, think in Obsidian.
 
-This plugin connects [Notes Exporter](https://apps.apple.com/us/app/notes-exporter/id6741618455?mt=12) with Obsidian. Export your Apple Notes and Bear Notes as markdown, open the folder as an Obsidian vault, and get native app integration right inside Obsidian.
+This plugin connects [Notes Exporter](https://apps.apple.com/us/app/notes-exporter/id6741618455?mt=12) with Obsidian. Export your Apple Notes, Bear, and Logseq notes as markdown, open the folder as an Obsidian vault, and get sync status and native app integration right inside Obsidian.
 
 ![screenshot](screenshot.png)
 
@@ -24,11 +24,18 @@ This plugin bridges them. Export your notes once or on a schedule, and Obsidian 
 
 ## Features
 
-- native Apple Notes and Bear icons on `notes://` and `bear://` links in reading view, live preview, and properties panel
-- "Open in Apple Notes" / "Open in Bear" in file and editor context menus
-- native app icon button in the tab header bar
+- sync status panel in the right sidebar: last export per source, notes exported, failures with links to the affected files, attachment issues
+- app icons on `notes://`, `bear://`, and `logseq://` links in reading view, live preview, and properties panel
+- "Open in Apple Notes" / "Open in Bear" / "Open in Logseq" in file and editor context menus
+- app icon button in the tab header bar
 - status bar showing source app and last modified time
-- command palette: "Open in native app"
+- command palette: "Open in native app", "Show sync status"
+
+## Sync status panel
+
+Notes Exporter writes a run report into each export folder (`.exporter/last-export.json`). The plugin finds these reports — whether the export root is the vault itself or a subfolder — and shows a card per source: how many notes were exported, when, in which format, and which notes or attachments failed (failed notes link to the exported file when it exists). The panel refreshes automatically every 30 seconds while open.
+
+Open it from the ribbon icon or the "Show sync status" command. If no export has landed in the vault yet, the panel shows a short setup guide instead.
 
 ## Frontmatter fields
 
@@ -39,9 +46,9 @@ Notes Exporter produces rich YAML frontmatter that works with Obsidian core feat
 | `title` | `"Meeting notes"` | note title |
 | `id` | `"A1B2C3..."` | Apple Notes identifier |
 | `aliases` | `["Meeting notes"]` | searchable via Obsidian alias |
-| `created` | `2025-01-15T10:30:00Z` | ISO 8601 |
-| `modified` | `2025-01-15T14:22:00Z` | ISO 8601 |
-| `source_url` | `"notes://showNote?identifier=..."` | deep link to source app |
+| `created` | `2025-01-15T10:30:00` | ISO 8601, local time |
+| `modified` | `2025-01-15T14:22:00` | ISO 8601, local time |
+| `source_url` | `"notes://showNote?identifier=..."` | deep link to source app (`notes://`, `bear://`, or `logseq://`) |
 | `tags` | `["work", "meetings"]` | Obsidian-compatible tags |
 | `reading_time` | `3` | estimated minutes (200 wpm) |
 | `pinned` | `true` | only if pinned |
@@ -81,7 +88,8 @@ Obsidian Importer is a one-time migration tool. This plugin + Notes Exporter is 
 - `source_url` deep links back to the original note (Importer has no source tracking)
 - attachments copied alongside notes with correct references (Importer can break attachment links)
 - rich frontmatter with word count, reading time, checklist stats, collaborators (Importer produces minimal metadata)
-- works with both Apple Notes and Bear (Importer only handles Apple Notes)
+- works with Apple Notes, Bear, and Logseq (Importer handles neither Bear nor Logseq)
+- sync status panel showing what was exported and what failed (Importer gives no ongoing visibility)
 
 If you've already left Apple Notes and just need a one-time import, Obsidian Importer works fine. If you still capture in Apple Notes and want your notes available in Obsidian, use this.
 

@@ -1,7 +1,8 @@
-import { Plugin, MarkdownView, PluginSettingTab, App, Setting, TFile, Menu } from 'obsidian';
+import { Plugin, MarkdownView, PluginSettingTab, App, Setting, TFile, Menu, WorkspaceLeaf } from 'obsidian';
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import { getIconForUrl, getAppNameForUrl, APP_ICONS } from './icons';
+import { StatusView, STATUS_VIEW_TYPE } from './statusView';
 
 const SCHEMES = Object.keys(APP_ICONS);
 
@@ -59,8 +60,9 @@ function decorateLinks(el: HTMLElement) {
 	}
 }
 
-// Regex to find markdown links with notes:// or bear:// schemes
-const LINK_RE = /\[([^\]]*)\]\(((notes:\/\/|bear:\/\/)[^)]*)\)/g;
+// Regex to find markdown links with any supported app scheme (notes://, bear://, logseq://)
+const SCHEME_ALTERNATION = SCHEMES.map((s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')).join('|');
+const LINK_RE = new RegExp(`\\[([^\\]]*)\\]\\(((${SCHEME_ALTERNATION})[^)]*)\\)`, 'g');
 
 class AppIconWidget extends WidgetType {
 	constructor(private iconSrc: string) {
@@ -158,13 +160,12 @@ function addOpenInAppMenuItem(app: App, menu: Menu, file: TFile) {
 				for (const el of Array.from(items)) {
 					if (el.textContent === `Open in ${appName}`) {
 						const iconEl = el.parentElement?.querySelector('.menu-item-icon');
-						if (iconEl) {
-							iconEl.innerHTML = '';
-							const img = document.createElement('img');
-							img.src = iconSrc;
-							img.className = 'exporter-app-icon';
-							img.alt = '';
-							iconEl.appendChild(img);
+						if (iconEl instanceof HTMLElement) {
+							iconEl.empty();
+							iconEl.createEl('img', {
+								cls: 'exporter-app-icon',
+								attr: { src: iconSrc, alt: '' },
+							});
 						}
 						break;
 					}
@@ -185,12 +186,24 @@ const DEFAULT_SETTINGS: ExporterSettings = {
 export default class ExporterPlugin extends Plugin {
 	settings: ExporterSettings = DEFAULT_SETTINGS;
 	private statusBarEl: HTMLElement | null = null;
-	private observer: MutationObserver | null = null;
 	private viewActionCleanup: (() => void) | null = null;
 
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new ExporterSettingTab(this.app, this));
+
+		// Sync status panel (right sidebar)
+		this.registerView(STATUS_VIEW_TYPE, (leaf) => new StatusView(leaf));
+		this.addRibbonIcon('refresh-cw', 'Notes Exporter: sync status', () => {
+			void this.activateStatusView();
+		});
+		this.addCommand({
+			id: 'show-sync-status',
+			name: 'Show sync status',
+			callback: () => {
+				void this.activateStatusView();
+			},
+		});
 
 		// Editor extension: decorate app links with icons in Live Preview
 		this.registerEditorExtension(appIconPlugin);
@@ -200,22 +213,20 @@ export default class ExporterPlugin extends Plugin {
 			decorateLinks(el);
 		});
 
-		// Global observer: decorate links in properties panel and anywhere else
-		this.observer = new MutationObserver((mutations) => {
-			for (const mutation of mutations) {
-				for (const node of Array.from(mutation.addedNodes)) {
-					if (node instanceof HTMLElement) {
-						decorateLinks(node);
-					}
-				}
-			}
-		});
-		this.observer.observe(document.body, { childList: true, subtree: true });
+		// Initial scan + rescan on leaf change (scoped to the active leaf, not document.body)
+		this.app.workspace.onLayoutReady(() => this.decorateActiveLeaf());
+		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
+			setTimeout(() => {
+				if (leaf) decorateLinks(leaf.view.containerEl);
+			}, 100);
+		}));
 
-		// Initial scan for already-rendered links
-		this.app.workspace.onLayoutReady(() => decorateLinks(document.body));
-		this.registerEvent(this.app.workspace.on('active-leaf-change', () => {
-			setTimeout(() => decorateLinks(document.body), 100);
+		// Re-decorate when metadata changes (covers the properties panel updating)
+		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
+			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (view?.file === file) {
+				setTimeout(() => decorateLinks(view.containerEl), 100);
+			}
 		}));
 
 		// Command: open active file's source in native app
@@ -271,11 +282,27 @@ export default class ExporterPlugin extends Plugin {
 	}
 
 	onunload() {
-		this.observer?.disconnect();
 		this.viewActionCleanup?.();
 	}
 
-	private updateViewAction(leaf: any) {
+	private decorateActiveLeaf() {
+		const leaf = this.app.workspace.activeLeaf;
+		if (leaf) decorateLinks(leaf.view.containerEl);
+	}
+
+	private async activateStatusView() {
+		const existing = this.app.workspace.getLeavesOfType(STATUS_VIEW_TYPE);
+		if (existing.length > 0) {
+			await this.app.workspace.revealLeaf(existing[0]);
+			return;
+		}
+		const leaf = this.app.workspace.getRightLeaf(false);
+		if (!leaf) return;
+		await leaf.setViewState({ type: STATUS_VIEW_TYPE, active: true });
+		await this.app.workspace.revealLeaf(leaf);
+	}
+
+	private updateViewAction(leaf: WorkspaceLeaf | null) {
 		this.viewActionCleanup?.();
 		this.viewActionCleanup = null;
 
@@ -294,12 +321,11 @@ export default class ExporterPlugin extends Plugin {
 			window.open(url);
 		});
 
-		actionEl.innerHTML = '';
-		const img = document.createElement('img');
-		img.src = iconSrc;
-		img.className = 'exporter-app-icon exporter-view-action-icon';
-		img.alt = `Open in ${appName}`;
-		actionEl.appendChild(img);
+		actionEl.empty();
+		actionEl.createEl('img', {
+			cls: 'exporter-app-icon exporter-view-action-icon',
+			attr: { src: iconSrc, alt: `Open in ${appName}` },
+		});
 
 		this.viewActionCleanup = () => actionEl.remove();
 	}

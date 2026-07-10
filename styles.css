@@ -17,7 +17,8 @@ a.exporter-source-link .external-link-icon {
   display: none;
 }
 a.exporter-source-link[href^="notes://"]::after,
-a.exporter-source-link[href^="bear://"]::after {
+a.exporter-source-link[href^="bear://"]::after,
+a.exporter-source-link[href^="logseq://"]::after {
   display: none;
 }
 
@@ -33,4 +34,120 @@ a.exporter-source-link[href^="bear://"]::after {
 
 .exporter-status-bar:hover {
   text-decoration: underline;
+}
+
+/* --- Sync status panel --- */
+
+.exporter-status-view {
+  padding: var(--size-4-2);
+}
+
+.exporter-status-card {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: var(--size-4-3);
+  margin-bottom: var(--size-4-3);
+}
+
+.exporter-status-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--size-4-2);
+}
+
+.exporter-status-source {
+  font-weight: var(--font-semibold);
+}
+
+.exporter-status-time {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
+.exporter-status-root {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  margin-top: var(--size-2-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exporter-status-summary {
+  margin-top: var(--size-4-1);
+}
+
+.exporter-status-format {
+  color: var(--text-muted);
+}
+
+.exporter-status-failures {
+  margin-top: var(--size-4-2);
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: var(--size-4-2);
+}
+
+.exporter-status-failures-heading {
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--size-2-2);
+}
+
+.exporter-status-failure {
+  font-size: var(--font-ui-smaller);
+  margin-bottom: var(--size-2-1);
+}
+
+a.exporter-status-failure-title {
+  cursor: pointer;
+}
+
+.exporter-status-failure-reason {
+  color: var(--text-muted);
+}
+
+.exporter-status-attachments {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  margin-top: var(--size-4-2);
+}
+
+/* --- Onboarding empty state --- */
+
+.exporter-onboarding {
+  max-width: 32em;
+  margin: var(--size-4-4) auto;
+  padding: var(--size-4-4);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+}
+
+.exporter-onboarding-headline {
+  margin: 0 0 var(--size-4-2) 0;
+  font-size: var(--font-ui-large);
+}
+
+.exporter-onboarding-body {
+  color: var(--text-muted);
+  margin: 0 0 var(--size-4-3) 0;
+}
+
+.exporter-onboarding-steps {
+  margin: 0 0 var(--size-4-3) 0;
+  padding-inline-start: var(--size-4-5);
+}
+
+.exporter-onboarding-steps li {
+  margin-bottom: var(--size-2-3);
+}
+
+.exporter-onboarding-note {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  margin: 0;
 }
