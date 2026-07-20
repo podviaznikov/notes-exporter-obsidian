@@ -255,7 +255,7 @@ function decorateLinks(el) {
     const iconSrc = getIconForUrl(href);
     if (!iconSrc) continue;
     if (link.querySelector(".exporter-app-icon")) continue;
-    const img = document.createElement("img");
+    const img = activeDocument.createElement("img");
     img.src = iconSrc;
     img.className = "exporter-app-icon";
     img.alt = "";
@@ -277,7 +277,7 @@ function decorateLinks(el) {
     if (!iconSrc) continue;
     if (node.querySelector?.(".exporter-app-icon")) continue;
     if (node.parentElement?.querySelector?.(".exporter-app-icon")) continue;
-    const img = document.createElement("img");
+    const img = activeDocument.createElement("img");
     img.src = iconSrc;
     img.className = "exporter-app-icon";
     img.alt = "";
@@ -296,7 +296,7 @@ var AppIconWidget = class extends import_view.WidgetType {
     this.iconSrc = iconSrc;
   }
   toDOM() {
-    const img = document.createElement("img");
+    const img = activeDocument.createElement("img");
     img.src = this.iconSrc;
     img.className = "exporter-app-icon";
     img.alt = "";
@@ -348,8 +348,8 @@ var appIconPlugin = import_view.ViewPlugin.fromClass(
 );
 function getSourceUrl(app, file) {
   const fm = app.metadataCache.getFileCache(file)?.frontmatter;
-  const url = fm?.["source_url"] || fm?.["source"] || fm?.["link"];
-  if (!url || typeof url !== "string") return null;
+  const url = fm?.["source_url"] ?? fm?.["source"] ?? fm?.["link"];
+  if (typeof url !== "string" || !url) return null;
   if (!SCHEMES.some((s) => url.startsWith(s))) return null;
   return url;
 }
@@ -364,8 +364,8 @@ function addOpenInAppMenuItem(app, menu, file) {
     item.setIcon("arrow-up-right");
     item.onClick(() => window.open(url));
     if (iconSrc) {
-      setTimeout(() => {
-        const menuEl = document.querySelector(".menu");
+      window.setTimeout(() => {
+        const menuEl = activeDocument.querySelector(".menu");
         if (!menuEl) return;
         const items = menuEl.querySelectorAll(".menu-item-title");
         for (const el of Array.from(items)) {
@@ -412,14 +412,14 @@ var ExporterPlugin = class extends import_obsidian2.Plugin {
     });
     this.app.workspace.onLayoutReady(() => this.decorateActiveLeaf());
     this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => {
-      setTimeout(() => {
+      window.setTimeout(() => {
         if (leaf) decorateLinks(leaf.view.containerEl);
       }, 100);
     }));
     this.registerEvent(this.app.metadataCache.on("changed", (file) => {
       const view = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
       if (view?.file === file) {
-        setTimeout(() => decorateLinks(view.containerEl), 100);
+        window.setTimeout(() => decorateLinks(view.containerEl), 100);
       }
     }));
     this.addCommand({
@@ -456,7 +456,7 @@ var ExporterPlugin = class extends import_obsidian2.Plugin {
       })
     );
     this.app.workspace.onLayoutReady(() => {
-      this.updateViewAction(this.app.workspace.activeLeaf);
+      this.updateViewAction(this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView)?.leaf ?? null);
     });
     if (this.settings.showStatusBar) {
       this.initStatusBar();
@@ -466,8 +466,8 @@ var ExporterPlugin = class extends import_obsidian2.Plugin {
     this.viewActionCleanup?.();
   }
   decorateActiveLeaf() {
-    const leaf = this.app.workspace.activeLeaf;
-    if (leaf) decorateLinks(leaf.view.containerEl);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
+    if (view) decorateLinks(view.containerEl);
   }
   async activateStatusView() {
     const existing = this.app.workspace.getLeavesOfType(STATUS_VIEW_TYPE);
@@ -516,8 +516,8 @@ var ExporterPlugin = class extends import_obsidian2.Plugin {
         const appName = getAppNameForUrl(url);
         if (appName) {
           const fm = this.app.metadataCache.getFileCache(view.file)?.frontmatter;
-          const mod = fm?.["modified"] || fm?.["modified_date"];
-          if (mod) {
+          const mod = fm?.["modified"] ?? fm?.["modified_date"];
+          if (typeof mod === "string" || typeof mod === "number") {
             const ago = Date.now() - new Date(mod).getTime();
             this.statusBarEl.setText(`modified ${formatTimeAgo(ago)} in ${appName}`);
           } else {
@@ -530,7 +530,8 @@ var ExporterPlugin = class extends import_obsidian2.Plugin {
     this.statusBarEl.setText("");
   }
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const saved = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, saved ?? {});
   }
   async saveSettings() {
     await this.saveData(this.settings);

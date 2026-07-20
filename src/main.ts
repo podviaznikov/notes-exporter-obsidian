@@ -19,7 +19,7 @@ function decorateLinks(el: HTMLElement) {
 		if (!iconSrc) continue;
 		if (link.querySelector('.exporter-app-icon')) continue;
 
-		const img = document.createElement('img');
+		const img = activeDocument.createElement('img');
 		img.src = iconSrc;
 		img.className = 'exporter-app-icon';
 		img.alt = '';
@@ -47,7 +47,7 @@ function decorateLinks(el: HTMLElement) {
 		if ((node as HTMLElement).querySelector?.('.exporter-app-icon')) continue;
 		if ((node as HTMLElement).parentElement?.querySelector?.('.exporter-app-icon')) continue;
 
-		const img = document.createElement('img');
+		const img = activeDocument.createElement('img');
 		img.src = iconSrc;
 		img.className = 'exporter-app-icon';
 		img.alt = '';
@@ -70,7 +70,7 @@ class AppIconWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
-		const img = document.createElement('img');
+		const img = activeDocument.createElement('img');
 		img.src = this.iconSrc;
 		img.className = 'exporter-app-icon';
 		img.alt = '';
@@ -132,9 +132,12 @@ const appIconPlugin = ViewPlugin.fromClass(
 
 /** Read source URL from file frontmatter */
 function getSourceUrl(app: App, file: TFile): string | null {
-	const fm = app.metadataCache.getFileCache(file)?.frontmatter;
-	const url = fm?.['source_url'] || fm?.['source'] || fm?.['link'];
-	if (!url || typeof url !== 'string') return null;
+	// frontmatter is `any` — narrow through unknown so nothing untyped escapes
+	const fm = app.metadataCache.getFileCache(file)?.frontmatter as
+		| Record<string, unknown>
+		| undefined;
+	const url: unknown = fm?.['source_url'] ?? fm?.['source'] ?? fm?.['link'];
+	if (typeof url !== 'string' || !url) return null;
 	if (!SCHEMES.some((s) => url.startsWith(s))) return null;
 	return url;
 }
@@ -153,8 +156,8 @@ function addOpenInAppMenuItem(app: App, menu: Menu, file: TFile) {
 		item.onClick(() => window.open(url));
 
 		if (iconSrc) {
-			setTimeout(() => {
-				const menuEl = document.querySelector('.menu');
+			window.setTimeout(() => {
+				const menuEl = activeDocument.querySelector('.menu');
 				if (!menuEl) return;
 				const items = menuEl.querySelectorAll('.menu-item-title');
 				for (const el of Array.from(items)) {
@@ -216,7 +219,7 @@ export default class ExporterPlugin extends Plugin {
 		// Initial scan + rescan on leaf change (scoped to the active leaf, not document.body)
 		this.app.workspace.onLayoutReady(() => this.decorateActiveLeaf());
 		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
-			setTimeout(() => {
+			window.setTimeout(() => {
 				if (leaf) decorateLinks(leaf.view.containerEl);
 			}, 100);
 		}));
@@ -225,7 +228,7 @@ export default class ExporterPlugin extends Plugin {
 		this.registerEvent(this.app.metadataCache.on('changed', (file) => {
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (view?.file === file) {
-				setTimeout(() => decorateLinks(view.containerEl), 100);
+				window.setTimeout(() => decorateLinks(view.containerEl), 100);
 			}
 		}));
 
@@ -272,7 +275,9 @@ export default class ExporterPlugin extends Plugin {
 			}),
 		);
 		this.app.workspace.onLayoutReady(() => {
-			this.updateViewAction(this.app.workspace.activeLeaf);
+			// updateViewAction only acts on markdown views, so resolve the leaf
+			// through the view (activeLeaf is deprecated).
+			this.updateViewAction(this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf ?? null);
 		});
 
 		// Status bar
@@ -286,8 +291,8 @@ export default class ExporterPlugin extends Plugin {
 	}
 
 	private decorateActiveLeaf() {
-		const leaf = this.app.workspace.activeLeaf;
-		if (leaf) decorateLinks(leaf.view.containerEl);
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (view) decorateLinks(view.containerEl);
 	}
 
 	private async activateStatusView() {
@@ -347,9 +352,11 @@ export default class ExporterPlugin extends Plugin {
 			if (url) {
 				const appName = getAppNameForUrl(url);
 				if (appName) {
-					const fm = this.app.metadataCache.getFileCache(view.file)?.frontmatter;
-					const mod = fm?.['modified'] || fm?.['modified_date'];
-					if (mod) {
+					const fm = this.app.metadataCache.getFileCache(view.file)?.frontmatter as
+						| Record<string, unknown>
+						| undefined;
+					const mod: unknown = fm?.['modified'] ?? fm?.['modified_date'];
+					if (typeof mod === 'string' || typeof mod === 'number') {
 						const ago = Date.now() - new Date(mod).getTime();
 						this.statusBarEl.setText(`modified ${formatTimeAgo(ago)} in ${appName}`);
 					} else {
@@ -364,7 +371,9 @@ export default class ExporterPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		// loadData() is `any` — narrow before it reaches a typed field
+		const saved = (await this.loadData()) as Partial<ExporterSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, saved ?? {});
 	}
 
 	async saveSettings() {
