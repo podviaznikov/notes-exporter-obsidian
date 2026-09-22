@@ -2,7 +2,7 @@ import { ItemView, WorkspaceLeaf, TFile, DataAdapter, normalizePath } from 'obsi
 
 export const STATUS_VIEW_TYPE = 'notes-exporter-status';
 
-const APP_STORE_URL = 'https://apps.apple.com/us/app/notes-exporter/id6741618455?mt=12';
+const DOWNLOAD_URL = 'https://exporter.dev/download';
 
 interface ExportFailure {
 	noteId: string;
@@ -19,7 +19,7 @@ interface AttachmentIssue {
 
 interface ExportReport {
 	runId: string;
-	source: string; // "apple-notes" | "bear" | "logseq"
+	source: string; // ExportSource.reportSource in the app: "apple-notes", "messages", "wallet", ...
 	startedAt: string;
 	finishedAt: string;
 	durationSec: number;
@@ -36,10 +36,19 @@ interface ExportRootReport {
 	report: ExportReport;
 }
 
+// Every source the app writes a report for (ExportSource.displayName in the app)
 const SOURCE_NAMES: Record<string, string> = {
 	'apple-notes': 'Apple Notes',
 	'bear': 'Bear',
 	'logseq': 'Logseq',
+	'contacts': 'Contacts',
+	'messages': 'Messages',
+	'screen-time': 'Screen Time',
+	'reminders': 'Reminders',
+	'documents': 'Documents',
+	'claude-code-sessions': 'Claude Code',
+	'wallet': 'Wallet',
+	'calendar': 'Calendar',
 };
 
 const SKIP_FOLDERS = new Set(['node_modules', 'attachments']);
@@ -254,30 +263,25 @@ export class StatusView extends ItemView {
 		panel.createEl('p', {
 			cls: 'exporter-onboarding-body',
 			text:
-				'Notes Exporter is a Mac app that exports your Apple Notes into plain Markdown files, ' +
-				'with frontmatter, tags, attachments, and deep links back to the original note. ' +
-				'Once your notes land in this vault, this panel shows the status of every export.',
+				'Exporter is a Mac app that exports Apple Notes, Messages, Contacts, Screen Time, Bear, Logseq ' +
+				'and your documents as Markdown files, kept in sync, ready for any agent. ' +
+				'Once an export lands in this vault, this panel shows the status of every run.',
 		});
 
 		const steps = panel.createEl('ol', { cls: 'exporter-onboarding-steps' });
 
 		const step1 = steps.createEl('li');
 		step1.createEl('a', {
-			text: 'Get Notes Exporter for Mac',
-			href: APP_STORE_URL,
+			text: 'Get Exporter for Mac',
+			href: DOWNLOAD_URL,
 		});
 
 		steps.createEl('li', {
-			text: 'Export your notes into this vault, or open the export folder as a vault',
+			text: 'Export into this vault, or open the export folder as a vault',
 		});
 
 		steps.createEl('li', {
 			text: 'Sync status appears here after the first export',
-		});
-
-		panel.createEl('p', {
-			cls: 'exporter-onboarding-note',
-			text: 'Bear and Logseq exports work the same way.',
 		});
 	}
 }

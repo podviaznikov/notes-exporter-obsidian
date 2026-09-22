@@ -1,7 +1,7 @@
 {
   "name": "@altocomputer/notes-exporter-obsidian",
-  "version": "0.3.0",
-  "description": "Sync Apple Notes, Bear, and Logseq into your vault as plain Markdown — sync status, native app icons, and deep links back to the source app.",
+  "version": "0.4.0",
+  "description": "Sync status for Exporter's Markdown exports in your vault (Apple Notes, Messages, Contacts, Reminders, Logseq and more), native app icons on links, and deep links back to the source app.",
   "private": true,
   "type": "module",
   "scripts": {

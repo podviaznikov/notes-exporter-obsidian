@@ -60,7 +60,7 @@ function decorateLinks(el: HTMLElement) {
 	}
 }
 
-// Regex to find markdown links with any supported app scheme (notes://, bear://, logseq://)
+// Regex to find markdown links with any supported app scheme (notes://, addressbook://, sms://, x-apple-reminderkit://, logseq://)
 const SCHEME_ALTERNATION = SCHEMES.map((s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')).join('|');
 const LINK_RE = new RegExp(`\\[([^\\]]*)\\]\\(((${SCHEME_ALTERNATION})[^)]*)\\)`, 'g');
 
