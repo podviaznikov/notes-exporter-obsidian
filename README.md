@@ -97,7 +97,7 @@ If you've already left Apple Notes and just need a one-time import, Obsidian Imp
 
 ### From Obsidian community plugins
 
-Search for "Notes Exporter" in Settings > Community plugins > Browse, or visit [obsidian.md/plugins?id=notes-exporter](https://obsidian.md/plugins?id=notes-exporter).
+Search for "Notes Exporter" in Settings > Community plugins > Browse, or visit [community.obsidian.md/plugins/notes-exporter](https://community.obsidian.md/plugins/notes-exporter).
 
 ### Manual
 
